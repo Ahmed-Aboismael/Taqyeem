@@ -1,10 +1,10 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client'; // ✅ Fixed import
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import RatingComponent from './RatingComponent'; // Client component for interactivity
 
 export default async function PublicRatingPage({ params }: { params: { slug: string } }) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = createClient({ cookies });
 
   const { data: location } = await supabase
     .from('locations')

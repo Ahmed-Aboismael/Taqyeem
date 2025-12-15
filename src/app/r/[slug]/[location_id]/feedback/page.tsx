@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client'; // ✅ Fixed import
 
 export default function FeedbackPage({ params }: { params: { location_id: string } }) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
 

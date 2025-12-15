@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 const supabase = await createClient()
 
 // Replace with your actual Lemon Squeezy checkout links
@@ -11,7 +11,7 @@ const plans = {
 };
 
 export default function BillingPage( ) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
