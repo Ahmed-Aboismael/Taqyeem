@@ -1,50 +1,67 @@
 'use client';
+
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 export default function SetupPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
   const [businessName, setBusinessName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
+  const router = useRouter();
 
-  const handleCreateBusiness = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-    const { data, error } = await supabase
-      .from('businesses')
-      .insert({ name: businessName, user_id: user.id })
-      .select('id')
-      .single();
+    const { error } = await supabase.from('businesses').insert({
+      user_id: user.id,
+      name: businessName,
+    });
 
     if (error) {
-      console.error('Error creating business:', error);
+      alert(error.message);
     } else {
-      // Redirect to add the first location
-      router.push('/dashboard/locations/new');
+      alert('Business created successfully!');
+      router.push('/dashboard');
+      router.refresh();
     }
+
+    setIsLoading(false);
   };
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold">Set up your Business</h1>
-      <p className="text-slate-600 mt-2">Let's start by giving your business a name.</p>
-      <div className="mt-6 max-w-md">
-        <input
-          type="text"
-          value={businessName}
-          onChange={(e) => setBusinessName(e.target.value)}
-          placeholder="e.g., Al-Baik Restaurant Group"
-          className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl"
-        />
+      <h1 className="text-3xl font-bold">Set Up Your Business</h1>
+      <form onSubmit={handleSubmit} className="max-w-lg mt-8 space-y-6">
+        <div>
+          <label htmlFor="businessName" className="block text-sm font-medium text-gray-700">
+            Business Name
+          </label>
+          <input
+            id="businessName"
+            type="text"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            className="w-full px-4 py-2 mt-1 border rounded-md"
+            placeholder="Enter your business name"
+            required
+          />
+        </div>
         <button
-          onClick={handleCreateBusiness}
-          className="mt-4 w-full bg-blue-600 text-white py-3 rounded-xl font-bold"
+          type="submit"
+          disabled={isLoading}
+          className="w-full px-4 py-2 font-bold text-white bg-blue-600 rounded-md disabled:bg-gray-400 hover:bg-blue-700"
         >
-          Create Business
+          {isLoading ? 'Creating...' : 'Create Business'}
         </button>
-      </div>
+      </form>
     </div>
   );
 }
