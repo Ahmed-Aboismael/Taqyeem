@@ -1,3 +1,5 @@
+// Save this as: src/app/api/auth/callback/route.ts
+
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
@@ -8,21 +10,24 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
+    
+    // Exchange code for session
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if user has a business (existing user)
+      // Get the authenticated user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data: business } = await supabase
+        // Check if user has a business
+        const { data: business, error: businessError } = await supabase
           .from('businesses')
           .select('id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to avoid error when no record exists
 
         // If business exists, go to dashboard; otherwise go to setup
-        if (business) {
+        if (business && !businessError) {
           return NextResponse.redirect(`${origin}/dashboard`);
         } else {
           return NextResponse.redirect(`${origin}/setup`);
