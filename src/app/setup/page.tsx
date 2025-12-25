@@ -9,16 +9,30 @@ export default function SetupPage() {
   const [industry, setIndustry] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
+  const validatePhoneNumber = (phoneNumber: string) => {
+    // Regex for a valid Saudi phone number (+966XXXXXXXXX)
+    const phoneRegex = /^\+966\d{9}$/;
+    return phoneRegex.test(phoneNumber);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    if (!validatePhoneNumber(phone)) {
+      setFormError('Please enter a valid Saudi phone number, e.g., +9665XXXXXXXX.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         router.push('/login');
         return;
@@ -38,7 +52,7 @@ export default function SetupPage() {
       router.push('/dashboard');
     } catch (error) {
       console.error('Error creating business:', error);
-      alert('Failed to create business. Please try again.');
+      setFormError('Failed to create business. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -102,6 +116,12 @@ export default function SetupPage() {
               placeholder="+966 XX XXX XXXX"
             />
           </div>
+
+          {formError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+              <span className="block sm:inline">{formError}</span>
+            </div>
+          )}
 
           <button
             type="submit"
