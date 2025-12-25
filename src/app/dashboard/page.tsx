@@ -14,8 +14,19 @@ interface Business {
   phone: string;
 }
 
+interface DashboardStats {
+  totalReviews: number;
+  positiveReviews: number;
+  locationsCount: number;
+}
+
 export default function DashboardPage() {
   const [business, setBusiness] = useState<Business | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalReviews: 0,
+    positiveReviews: 0,
+    locationsCount: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -25,11 +36,49 @@ export default function DashboardPage() {
     checkAuthAndBusiness();
   }, []);
 
+  const fetchDashboardStats = async (businessId: string) => {
+    try {
+      const [
+        { count: totalReviews, error: reviewsError },
+        { count: positiveReviews, error: positiveReviewsError },
+        { count: locationsCount, error: locationsError },
+      ] = await Promise.all([
+        supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', businessId),
+        supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', businessId)
+          .gte('rating', 4),
+        supabase
+          .from('locations')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', businessId),
+      ]);
+
+      if (reviewsError) throw reviewsError;
+      if (positiveReviewsError) throw positiveReviewsError;
+      if (locationsError) throw locationsError;
+
+      setStats({
+        totalReviews: totalReviews ?? 0,
+        positiveReviews: positiveReviews ?? 0,
+        locationsCount: locationsCount ?? 0,
+      });
+
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      setError('Could not load dashboard statistics.');
+    }
+  };
+
   const checkAuthAndBusiness = async () => {
     try {
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+
       if (authError || !user) {
         router.push('/login');
         return;
@@ -56,6 +105,7 @@ export default function DashboardPage() {
       }
 
       setBusiness(businessData);
+      await fetchDashboardStats(businessData.id);
       setLoading(false);
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -107,15 +157,15 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-purple-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-purple-900 mb-2">Total Reviews</h3>
-              <p className="text-3xl font-bold text-purple-600">0</p>
+              <p className="text-3xl font-bold text-purple-600">{stats.totalReviews}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-green-900 mb-2">Positive Reviews</h3>
-              <p className="text-3xl font-bold text-green-600">0</p>
+              <p className="text-3xl font-bold text-green-600">{stats.positiveReviews}</p>
             </div>
             <div className="bg-yellow-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-900 mb-2">Locations</h3>
-              <p className="text-3xl font-bold text-yellow-600">0</p>
+              <p className="text-3xl font-bold text-yellow-600">{stats.locationsCount}</p>
             </div>
           </div>
 
